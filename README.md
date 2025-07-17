@@ -29,19 +29,13 @@ Each workflow consists of:
 - **States**: With `id`, `isInitial`, `isFinal`, `enabled`.
 - **Actions**: With `id`, `name`, `fromStates[]`, `toState`, `enabled`.
 
-## Folder Structure
-/Controllers
-    WorkflowController.cs
-/Models
-    State.cs
-    Action.cs
-    WorkflowDefinition.cs
-    WorkflowInstance.cs
-/Services
-    WorkflowService.cs
-    WorkflowStorage.cs
-Program.cs
-README.md
+### Folder Structure:
+
+- **/Controllers** – Contains API controllers for handling HTTP requests.
+- **/Models** – Defines data models like states, actions, definitions, and instances used in the workflow engine.
+- **/Services** – Contains core business logic, including workflow service and in-memory storage.
+- **Program.cs** – Entry point for the .NET application.
+- **README.md** – You're reading it!
 
 
 ## Getting Started
