@@ -31,21 +31,22 @@ public class WorkflowService
         return instance;
     }
 
-    public string? ExecuteAction(string instanceId, string action)
+    public string? ExecuteAction(string instanceId, string actionId)
     {
         if (!Instances.TryGetValue(instanceId, out var inst))
             return "Instance not found.";
 
         if (!Definitions.TryGetValue(inst.DefinitionId, out var def))
             return "Definition not found.";
+        var action = def.Actions.FirstOrDefault(a =>
+            a.Id == actionId &&
+            a.Enabled &&
+            a.FromStates.Contains(inst.CurrentState));
 
-        if (!def.Transitions.TryGetValue(inst.CurrentState, out var possibleActions))
-            return $"No transitions from current state: {inst.CurrentState}";
+        if (action == null)
+            return $"Action '{actionId}' not allowed from state '{inst.CurrentState}'.";
 
-        if (!possibleActions.TryGetValue(action, out var newState))
-            return $"Action '{action}' not allowed from state '{inst.CurrentState}'.";
-
-        inst.CurrentState = newState;
+        inst.CurrentState = action.ToState;
         return null;
     }
 }

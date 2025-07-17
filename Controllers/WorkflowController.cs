@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using WorkflowEngine.Models;
-using WorkflowEngine.Storage; 
+using WorkflowEngine.Storage;
 using System.Linq;
 
 namespace WorkflowEngine.Controllers;
@@ -13,18 +13,21 @@ public class WorkflowController : ControllerBase
     [HttpPost("define")]
     public IActionResult DefineWorkflow([FromBody] WorkflowDefinition definition)
     {
-        if (string.IsNullOrWhiteSpace(definition.Id))
+        if (definition == null || string.IsNullOrWhiteSpace(definition.Id))
             return BadRequest("Definition must have a non-empty Id");
 
         if (string.IsNullOrWhiteSpace(definition.InitialState) || !definition.States.Contains(definition.InitialState))
             return BadRequest("InitialState must be one of the defined states");
+
+        // if (definition.States.Count(s => s.IsInitial) != 1)
+        //     return BadRequest("Workflow must contain exactly one initial state.");
+
 
         if (!InMemoryStore.Definitions.TryAdd(definition.Id, definition))
             return Conflict($"Workflow definition with Id '{definition.Id}' already exists");
 
         return Ok(definition);
     }
-
 
     // 2. Create an instance
     [HttpPost("instance")]
@@ -43,14 +46,23 @@ public class WorkflowController : ControllerBase
         return Ok(instance);
     }
 
-    // 3. List instances -> TO DO
+    // 3. List instances
     [HttpGet("instances")]
     public IActionResult GetInstances()
     {
         return Ok(InMemoryStore.Instances.Values);
     }
 
-    //4. Execute Instances
+    // 4. List definitions
+    [HttpGet("definitions")]
+    public IActionResult GetDefinitions()
+    {
+        var definitions = InMemoryStore.Definitions;
+        return Ok(definitions);
+    }
+
+
+    // 5. Execute action
     [HttpPost("execute")]
     public IActionResult ExecuteAction([FromBody] ExecutionRequest request)
     {
@@ -59,18 +71,19 @@ public class WorkflowController : ControllerBase
 
         if (!InMemoryStore.Definitions.TryGetValue(instance.DefinitionId, out var definition))
             return NotFound($"Workflow definition '{instance.DefinitionId}' not found");
+        var action = definition.Actions.FirstOrDefault(a =>
+            a.Id == request.ActionId &&
+            a.Enabled &&
+            a.FromStates.Contains(instance.CurrentState));
 
-        if (!definition.Transitions.TryGetValue(request.ActionId, out var transitionMap))
-            return BadRequest($"Action '{request.ActionId}' not defined in workflow '{definition.Id}'");
+        if (action == null)
+            return BadRequest($"Action '{request.ActionId}' cannot be performed from state '{instance.CurrentState}' or does not exist");
 
-        if (!transitionMap.TryGetValue(instance.CurrentState, out var newState))
-            return BadRequest($"Action '{request.ActionId}' cannot be performed from state '{instance.CurrentState}'");
-
-        instance.CurrentState = newState;
+        instance.CurrentState = action.ToState;
         return Ok(instance);
     }
 
-    // 5. Get workflow definition by Id
+    // 6. Get workflow definition by Id
     [HttpGet("definition/{id}")]
     public IActionResult GetWorkflowDefinition(string id)
     {
@@ -80,5 +93,4 @@ public class WorkflowController : ControllerBase
         }
         return NotFound($"Workflow definition '{id}' not found");
     }
-
 }

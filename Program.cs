@@ -63,6 +63,22 @@ app.MapGet("/instances/{id}", (string id) =>
         : Results.NotFound("Instance not found.");
 });
 
+// Endpoint to get available actions for a workflow instance
+app.MapGet("/instances/{id}/available-actions", (string id) =>
+{
+    if (!service.Instances.TryGetValue(id, out var inst))
+        return Results.NotFound("Instance not found.");
+
+    if (!service.Definitions.TryGetValue(inst.DefinitionId, out var def))
+        return Results.NotFound("Definition not found.");
+
+    var actions = def.Actions
+        .Where(a => a.Enabled && a.FromStates.Contains(inst.CurrentState))
+        .Select(a => new { a.Id, a.Name, a.Description, a.ToState });
+
+    return Results.Ok(actions);
+});
+
 app.MapControllers();
 
 app.Run();
