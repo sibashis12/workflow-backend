@@ -1,4 +1,5 @@
 using WorkflowEngine.Models;
+using WorkflowEngine.Storage;
 
 namespace WorkflowEngine.Services;
 
@@ -9,12 +10,24 @@ public class WorkflowService
 
     public bool AddDefinition(WorkflowDefinition def)
     {
-        if (string.IsNullOrWhiteSpace(def.Id) || !def.States.Contains(def.InitialState))
+        // Check if InitialState exists in the list of defined states
+        if (string.IsNullOrWhiteSpace(def.Id) || !def.States.Any(s => s.Name == def.InitialState))
             return false;
+
+        // Ensure all states in Actions exist in the States list
+        foreach (var action in def.Actions)
+        {
+            if (!def.States.Any(s => s.Name == action.ToState))
+                return false;
+
+            if (action.FromStates.Any(from => !def.States.Any(s => s.Name == from)))
+                return false;
+        }
 
         Definitions[def.Id] = def;
         return true;
     }
+
 
     public WorkflowInstance? StartInstance(string defId)
     {
@@ -38,6 +51,7 @@ public class WorkflowService
 
         if (!Definitions.TryGetValue(inst.DefinitionId, out var def))
             return "Definition not found.";
+
         var action = def.Actions.FirstOrDefault(a =>
             a.Id == actionId &&
             a.Enabled &&
@@ -45,6 +59,10 @@ public class WorkflowService
 
         if (action == null)
             return $"Action '{actionId}' not allowed from state '{inst.CurrentState}'.";
+
+        if (!def.States.Any(s => s.Name == action.ToState))
+    return $"Target state '{action.ToState}' is not a valid state in the workflow definition.";
+
 
         inst.CurrentState = action.ToState;
         return null;

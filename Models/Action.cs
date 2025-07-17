@@ -6,6 +6,6 @@ public class Action
     public string Name { get; set; } = default!;
     public required List<string> FromStates { get; set; }
     public required string ToState { get; set; }
-    public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; } = true;//TODO-> add Enabled Functionality
     public string? Description { get; set; }
 }

@@ -16,12 +16,14 @@ public class WorkflowController : ControllerBase
         if (definition == null || string.IsNullOrWhiteSpace(definition.Id))
             return BadRequest("Definition must have a non-empty Id");
 
-        if (string.IsNullOrWhiteSpace(definition.InitialState) || !definition.States.Contains(definition.InitialState))
-            return BadRequest("InitialState must be one of the defined states");
+        if (string.IsNullOrWhiteSpace(definition.InitialState))
+            return BadRequest("InitialState must be provided");
 
-        // if (definition.States.Count(s => s.IsInitial) != 1)
-        //     return BadRequest("Workflow must contain exactly one initial state.");
+        if (!definition.States.Any(s => s.Id == definition.InitialState))
+            return BadRequest("InitialState must match the Id of one of the defined states.");
 
+        if (definition.States.Count(s => s.IsInitial) != 1)
+            return BadRequest("Workflow must contain exactly one initial state.");
 
         if (!InMemoryStore.Definitions.TryAdd(definition.Id, definition))
             return Conflict($"Workflow definition with Id '{definition.Id}' already exists");
@@ -61,7 +63,6 @@ public class WorkflowController : ControllerBase
         return Ok(definitions);
     }
 
-
     // 5. Execute action
     [HttpPost("execute")]
     public IActionResult ExecuteAction([FromBody] ExecutionRequest request)
@@ -71,6 +72,7 @@ public class WorkflowController : ControllerBase
 
         if (!InMemoryStore.Definitions.TryGetValue(instance.DefinitionId, out var definition))
             return NotFound($"Workflow definition '{instance.DefinitionId}' not found");
+
         var action = definition.Actions.FirstOrDefault(a =>
             a.Id == request.ActionId &&
             a.Enabled &&

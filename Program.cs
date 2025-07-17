@@ -8,7 +8,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -74,7 +73,13 @@ app.MapGet("/instances/{id}/available-actions", (string id) =>
 
     var actions = def.Actions
         .Where(a => a.Enabled && a.FromStates.Contains(inst.CurrentState))
-        .Select(a => new { a.Id, a.Name, a.Description, a.ToState });
+        .Select(a => new
+        {
+            a.Id,
+            a.Name,
+            a.Description,
+            a.ToState
+        });
 
     return Results.Ok(actions);
 });
