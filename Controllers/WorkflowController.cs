@@ -70,5 +70,15 @@ public class WorkflowController : ControllerBase
         return Ok(instance);
     }
 
+    // 5. Get workflow definition by Id
+    [HttpGet("definition/{id}")]
+    public IActionResult GetWorkflowDefinition(string id)
+    {
+        if (InMemoryStore.Definitions.TryGetValue(id, out var definition))
+        {
+            return Ok(definition);
+        }
+        return NotFound($"Workflow definition '{id}' not found");
+    }
 
 }
